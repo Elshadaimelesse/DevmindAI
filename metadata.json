@@ -1,0 +1,6 @@
+{
+  "name": "DevMind AI - Autonomous Software Engineering Platform",
+  "description": "Enterprise-grade autonomous AI software engineering platform featuring distributed agent orchestration, high-performance code analysis engine, and interactive developer workspace.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

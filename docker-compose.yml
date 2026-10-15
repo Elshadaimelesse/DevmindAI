@@ -1,0 +1,83 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8080
+      - NODE_ENV=development
+    depends_on:
+      - api-go
+    networks:
+      - devmind-net
+
+  agent-js:
+    build:
+      context: ./services/agent-js
+      dockerfile: ../../infrastructure/docker/Dockerfile.agent-js
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - RUST_ENGINE_ADDR=engine-rust:50051
+      - GO_GATEWAY_ADDR=api-go:8080
+    depends_on:
+      - engine-rust
+      - postgres
+    networks:
+      - devmind-net
+
+  api-go:
+    build:
+      context: ./services/api-go
+      dockerfile: ../../infrastructure/docker/Dockerfile.api-go
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_DSN=postgres://devmind:devmind_secret@postgres:5432/devmind_db?sslmode=disable
+      - CLICKHOUSE_DSN=tcp://clickhouse:9000?database=devmind_audit
+    depends_on:
+      - postgres
+      - clickhouse
+    networks:
+      - devmind-net
+
+  engine-rust:
+    build:
+      context: ./services/engine-rust
+      dockerfile: ../../infrastructure/docker/Dockerfile.engine-rust
+    ports:
+      - "50051:50051"
+    environment:
+      - RUST_LOG=info
+      - WORKER_THREADS=8
+    networks:
+      - devmind-net
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=devmind
+      - POSTGRES_PASSWORD=devmind_secret
+      - POSTGRES_DB=devmind_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - devmind-net
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    networks:
+      - devmind-net
+
+networks:
+  devmind-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  clickhouse_data:
